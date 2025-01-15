@@ -58,7 +58,7 @@ Modify the app.js file to connect to MongoDB and use routers:
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const mongoose = require('mongoose');
+const { MongoClient } = require('mongodb');
 const bodyParser = require('body-parser');
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
@@ -66,6 +66,19 @@ const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
 
 const app = express();
+const client = new MongoClient(process.env.MONGO_URI);
+
+async function connectDB() {
+    try {
+        await client.connect();
+        console.log('Connected to MongoDB');
+        app.locals.db = client.db('express_crud');
+    } catch (error) {
+        console.error('Error connecting to MongoDB', error);
+        process.exit(1);
+    }
+}
+connectDB();
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
@@ -74,18 +87,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-});
-
-// Routers
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/products', productRoutes);
 app.use('/categories', categoryRoutes);
 
 module.exports = app;
+
 
 ```
 
@@ -94,23 +102,78 @@ module.exports = app;
 ### Product Model (models/Product.js)
 
 ```
-const mongoose = require('mongoose');
-const ProductSchema = new mongoose.Schema({
-    name: String,
-    price: Number,
-    category: String,
-});
-module.exports = mongoose.model('Product', ProductSchema);
+const { ObjectId } = require('mongodb');
+
+class ProductModel {
+    constructor(db) {
+        this.collection = db.collection('products');
+    }
+
+    async getAll() {
+        return await this.collection.find().toArray();
+    }
+
+    async getById(id) {
+        return await this.collection.findOne({ _id: new ObjectId(id) });
+    }
+
+    async add(product) {
+        const result = await this.collection.insertOne(product);
+        return result.ops[0];
+    }
+
+    async update(id, product) {
+        return await this.collection.updateOne(
+            { _id: new ObjectId(id) },
+            { $set: product }
+        );
+    }
+
+    async delete(id) {
+        return await this.collection.deleteOne({ _id: new ObjectId(id) });
+    }
+}
+
+module.exports = ProductModel;
+
 ```
 
 ### Category Model (models/Category.js)
 ```
-const mongoose = require('mongoose');
-const CategorySchema = new mongoose.Schema({
-    name: String,
-    description: String,
-});
-module.exports = mongoose.model('Category', CategorySchema);
+const { ObjectId } = require('mongodb');
+
+class CategoryModel {
+    constructor(db) {
+        this.collection = db.collection('categories');
+    }
+
+    async getAll() {
+        return await this.collection.find().toArray();
+    }
+
+    async getById(id) {
+        return await this.collection.findOne({ _id: new ObjectId(id) });
+    }
+
+    async add(category) {
+        const result = await this.collection.insertOne(category);
+        return result.ops[0];
+    }
+
+    async update(id, category) {
+        return await this.collection.updateOne(
+            { _id: new ObjectId(id) },
+            { $set: category }
+        );
+    }
+
+    async delete(id) {
+        return await this.collection.deleteOne({ _id: new ObjectId(id) });
+    }
+}
+
+module.exports = CategoryModel;
+
 ```
 
 ## 5. Routers
@@ -120,24 +183,36 @@ Product Router (routes/products.js)
 ```
 const express = require('express');
 const router = express.Router();
-const Product = require('../models/Product');
+const ProductModel = require('../models/Product');
+
+router.use((req, res, next) => {
+    req.productModel = new ProductModel(req.app.locals.db);
+    next();
+});
 
 router.get('/', async (req, res) => {
-    const products = await Product.find();
+    const products = await req.productModel.getAll();
     res.json(products);
 });
 
 router.post('/add', async (req, res) => {
-    const product = await Product.create(req.body);
+    const product = await req.productModel.add(req.body);
     res.json(product);
 });
 
+router.put('/:id', async (req, res) => {
+    const result = await req.productModel.update(req.params.id, req.body);
+    res.json({ message: 'Product updated', result });
+});
+
 router.delete('/:id', async (req, res) => {
-    await Product.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Product deleted' });
+    const result = await req.productModel.delete(req.params.id);
+    res.json({ message: 'Product deleted', result });
 });
 
 module.exports = router;
+
+
 ```
 
 Category Router (routes/categories.js)
@@ -145,27 +220,39 @@ Category Router (routes/categories.js)
 ```
 const express = require('express');
 const router = express.Router();
-const Category = require('../models/Category');
+const CategoryModel = require('../models/Category');
+
+router.use((req, res, next) => {
+    req.categoryModel = new CategoryModel(req.app.locals.db);
+    next();
+});
 
 // Get all categories
 router.get('/', async (req, res) => {
-    const categories = await Category.find();
+    const categories = await req.categoryModel.getAll();
     res.json(categories);
 });
 
 // Add a new category
 router.post('/add', async (req, res) => {
-    const category = await Category.create(req.body);
+    const category = await req.categoryModel.add(req.body);
     res.json(category);
+});
+
+// Update a category
+router.put('/:id', async (req, res) => {
+    const result = await req.categoryModel.update(req.params.id, req.body);
+    res.json({ message: 'Category updated', result });
 });
 
 // Delete a category
 router.delete('/:id', async (req, res) => {
-    await Category.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Category deleted' });
+    const result = await req.categoryModel.delete(req.params.id);
+    res.json({ message: 'Category deleted', result });
 });
 
 module.exports = router;
+
 ```
 
 ## 6. Testing with Postman
