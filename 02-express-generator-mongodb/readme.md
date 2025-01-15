@@ -2,6 +2,8 @@
 
 ## 1. Installation
 
+[Install Express-Generator](https://expressjs.com/en/starter/generator.html)
+
 Run the following commands to set up the project:
 
 ```bash
@@ -42,6 +44,7 @@ express_crud/
 ```
 
 ## 3. MongoDB Configuration
+
 ### Create .env File
 
 Add the following environment variables to a .env file:
@@ -52,6 +55,7 @@ PORT=3000
 ```
 
 ### Update app.js
+
 Modify the app.js file to connect to MongoDB and use routers:
 
 ```
@@ -119,7 +123,7 @@ class ProductModel {
 
     async add(product) {
         const result = await this.collection.insertOne(product);
-        return result.ops[0];
+        return result;
     }
 
     async update(id, product) {
@@ -139,6 +143,7 @@ module.exports = ProductModel;
 ```
 
 ### Category Model (models/Category.js)
+
 ```
 const { ObjectId } = require('mongodb');
 
@@ -157,7 +162,7 @@ class CategoryModel {
 
     async add(category) {
         const result = await this.collection.insertOne(category);
-        return result.ops[0];
+        return result;
     }
 
     async update(id, category) {
