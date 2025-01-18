@@ -1,16 +1,43 @@
 # Hello world example
+
 Embedded below is essentially the simplest Express app you can create. It is a single file app — not what you’d get if you use the Express generator, which creates the scaffolding for a full app with numerous JavaScript files, Jade templates, and sub-directories for various purposes.
 
+> Note: Install NodeJS: [Downloads](https://nodejs.org/en/download "Download here!")
+
+## Initialize projects:
+
 ```
-const express = require('express')
-const app = express()
-const port = 3000
+mkdir <project_name>
+cd <project_name>
+npm init
+```
+
+Enter all steps to create a new project
+
+## Update package.json:
+
+```
+...
+  "scripts": {
+    "start": "node index",
+    ...
+  },
+...
+```
+
+## Create a index.js:
+
+```
+const express = require('express');
+const app = express();
+const port = 3000;
+const server = 'localhost';
 
 app.get('/', (req, res) => {
-  res.send('Hello World!')
+  res.send('Hello World!');
 })
 
-app.listen(port, () => {
+app.listen(port, localhost, () => {
   console.log(`Example app listening on port ${port}`)
 })
 ```
@@ -25,7 +52,9 @@ In the myapp directory, create a file named app.js and copy the code from the ex
 The req (request) and res (response) are the exact same objects that Node provides, so you can invoke req.pipe(), req.on('data', callback), and anything else you would do without Express involved.
 
 Run the app with the following command:
+
 ```
-$ node app.js
+$ npm start
 ```
+
 Then, load http://localhost:3000/ in a browser to see the output.
