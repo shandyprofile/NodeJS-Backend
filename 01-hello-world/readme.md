@@ -54,6 +54,7 @@ The req (request) and res (response) are the exact same objects that Node provid
 Run the app with the following command:
 
 ```
+$ npm install express
 $ npm start
 ```
 
